@@ -12,6 +12,10 @@ android {
         minSdk = 25
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    kotlin {
+        jvmToolchain(21)
+    }
 }
 
 dependencies {

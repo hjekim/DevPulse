@@ -13,6 +13,14 @@ android {
         minSdk = 25
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    kotlin {
+        jvmToolchain(21)
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -30,4 +38,6 @@ dependencies {
     // Retrofit
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.simplexml)
+
+    implementation(libs.google.generativeai)
 }
