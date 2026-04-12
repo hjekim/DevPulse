@@ -21,6 +21,12 @@ android {
     buildFeatures {
         buildConfig = true
     }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
@@ -39,5 +45,7 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.simplexml)
 
-    implementation(libs.google.generativeai)
+    // AI & ML
+    implementation(libs.mlkit.translate)
+    implementation(libs.kotlinx.coroutines.play.services)
 }

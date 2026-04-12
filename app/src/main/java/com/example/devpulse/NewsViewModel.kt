@@ -28,9 +28,11 @@ class NewsViewModel @Inject constructor(
     private val _selectedKeyword = MutableStateFlow<String?>(null)
     private val _isRefreshing = MutableStateFlow(false)
     
-    // 번역된 제목들을 저장하는 Map (URL을 키로 사용)
     private val _translatedTitles = MutableStateFlow<Map<String, String>>(emptyMap())
     val translatedTitles: StateFlow<Map<String, String>> = _translatedTitles
+
+    private val _translatingUrls = MutableStateFlow<Set<String>>(emptySet())
+    val translatingUrls: StateFlow<Set<String>> = _translatingUrls
 
     val bookmarks: StateFlow<List<NewsItem>> = repository.getBookmarks()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -74,11 +76,15 @@ class NewsViewModel @Inject constructor(
     }
 
     fun translateTitle(item: NewsItem) {
-        if (_translatedTitles.value.containsKey(item.link)) return // 이미 번역된 경우 패스
-
+        if (_translatedTitles.value.containsKey(item.link) || _translatingUrls.value.contains(item.link)) return
         viewModelScope.launch {
-            val translated = repository.translateText(item.title, "Korean")
-            _translatedTitles.value = _translatedTitles.value + (item.link to translated)
+            _translatingUrls.value = _translatingUrls.value + item.link
+            try {
+                val translated = repository.translateText(item.title, "Korean")
+                _translatedTitles.value = _translatedTitles.value + (item.link to translated)
+            } finally {
+                _translatingUrls.value = _translatingUrls.value - item.link
+            }
         }
     }
 }

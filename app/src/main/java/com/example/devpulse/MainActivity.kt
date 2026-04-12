@@ -1,18 +1,15 @@
 package com.example.devpulse
 
-import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Bundle
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,15 +17,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -38,22 +36,20 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.example.devpulse.model.NewsItem
 import com.example.devpulse.ui.theme.DevPulseTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -67,62 +63,67 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             DevPulseTheme {
-                var selectedTab by remember { mutableIntStateOf(0) } // 0: News, 1: Bookmarks
-                var viewingUrl by remember { mutableStateOf<String?>(null) } // 현재 보고 있는 뉴스 URL
+                var selectedTab by remember { mutableIntStateOf(0) }
                 
                 val newsItems by viewModel.newsItems.collectAsState()
                 val bookmarks by viewModel.bookmarks.collectAsState()
                 val selectedKeyword by viewModel.selectedKeyword.collectAsState()
                 val isRefreshing by viewModel.isRefreshing.collectAsState()
+                val translatedTitles by viewModel.translatedTitles.collectAsState()
+                val translatingUrls by viewModel.translatingUrls.collectAsState()
+                
+                val context = LocalContext.current
+                val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
 
-                // WebView가 열려있을 때 뒤로가기 처리
-                if (viewingUrl != null) {
-                    BackHandler {
-                        viewingUrl = null
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = selectedTab == 0,
+                                onClick = { selectedTab = 0 },
+                                label = { Text("News") },
+                                icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "News") }
+                            )
+                            NavigationBarItem(
+                                selected = selectedTab == 1,
+                                onClick = { selectedTab = 1 },
+                                label = { Text("Bookmarks") },
+                                icon = { Icon(Icons.Default.Bookmark, contentDescription = "Bookmarks") }
+                            )
+                        }
                     }
-                    WebViewScreen(
-                        url = viewingUrl!!,
-                        onBack = { viewingUrl = null }
-                    )
-                } else {
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize(),
-                        bottomBar = {
-                            NavigationBar {
-                                NavigationBarItem(
-                                    selected = selectedTab == 0,
-                                    onClick = { selectedTab = 0 },
-                                    label = { Text("News") },
-                                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "News") }
-                                )
-                                NavigationBarItem(
-                                    selected = selectedTab == 1,
-                                    onClick = { selectedTab = 1 },
-                                    label = { Text("Bookmarks") },
-                                    icon = { Icon(Icons.Default.Bookmark, contentDescription = "Bookmarks") }
-                                )
+                ) { innerPadding ->
+                    val displayItems = if (selectedTab == 0) newsItems else bookmarks
+                    
+                    NewsListScreen(
+                        title = if (selectedTab == 0) "DevPulse: News" else "My Bookmarks",
+                        newsItems = displayItems,
+                        translatedTitles = translatedTitles,
+                        translatingUrls = translatingUrls,
+                        selectedKeyword = if (selectedTab == 0) selectedKeyword else null,
+                        showFilters = selectedTab == 0,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.fetchNews() },
+                        onKeywordSelected = { viewModel.setKeyword(it) },
+                        onBookmarkClick = { viewModel.toggleBookmark(it) },
+                        onTranslateClick = { viewModel.translateTitle(it) },
+                        modifier = Modifier.padding(innerPadding),
+                        onNewsClick = { item ->
+                            if (item.link.isNotEmpty()) {
+                                // 🛠 Chrome Custom Tabs 실행
+                                val intent = CustomTabsIntent.Builder()
+                                    .setDefaultColorSchemeParams(
+                                        CustomTabColorSchemeParams.Builder()
+                                            .setToolbarColor(primaryColor)
+                                            .build()
+                                    )
+                                    .setShowTitle(true)
+                                    .build()
+                                intent.launchUrl(context, Uri.parse(item.link))
                             }
                         }
-                    ) { innerPadding ->
-                        val displayItems = if (selectedTab == 0) newsItems else bookmarks
-                        
-                        NewsListScreen(
-                            title = if (selectedTab == 0) "DevPulse: News" else "My Bookmarks",
-                            newsItems = displayItems,
-                            selectedKeyword = if (selectedTab == 0) selectedKeyword else null,
-                            showFilters = selectedTab == 0,
-                            isRefreshing = isRefreshing,
-                            onRefresh = { viewModel.fetchNews() },
-                            onKeywordSelected = { viewModel.setKeyword(it) },
-                            onBookmarkClick = { viewModel.toggleBookmark(it) },
-                            modifier = Modifier.padding(innerPadding),
-                            onNewsClick = { item ->
-                                if (item.link.isNotEmpty()) {
-                                    viewingUrl = item.link
-                                }
-                            }
-                        )
-                    }
+                    )
                 }
             }
         }
@@ -131,48 +132,18 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WebViewScreen(url: String, onBack: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Article", style = MaterialTheme.typography.titleMedium) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        AndroidView(
-            factory = { context ->
-                WebView(context).apply {
-                    settings.javaScriptEnabled = true // 대부분의 기술 블로그는 JS가 필요함
-                    webViewClient = WebViewClient()
-                    loadUrl(url)
-                }
-            },
-            update = { webView ->
-                webView.loadUrl(url)
-            },
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun NewsListScreen(
     title: String,
     newsItems: List<NewsItem>,
+    translatedTitles: Map<String, String>,
+    translatingUrls: Set<String>,
     selectedKeyword: String?,
     showFilters: Boolean,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onKeywordSelected: (String?) -> Unit,
     onBookmarkClick: (NewsItem) -> Unit,
+    onTranslateClick: (NewsItem) -> Unit,
     modifier: Modifier = Modifier,
     onNewsClick: (NewsItem) -> Unit = {}
 ) {
@@ -230,9 +201,12 @@ fun NewsListScreen(
 
             items(newsItems) { item ->
                 NewsCard(
-                    item = item, 
+                    item = item,
+                    translatedTitle = translatedTitles[item.link],
+                    isTranslating = translatingUrls.contains(item.link),
                     onClick = { onNewsClick(item) },
-                    onBookmarkClick = { onBookmarkClick(item) }
+                    onBookmarkClick = { onBookmarkClick(item) },
+                    onTranslateClick = { onTranslateClick(item) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -241,7 +215,14 @@ fun NewsListScreen(
 }
 
 @Composable
-fun NewsCard(item: NewsItem, onClick: () -> Unit, onBookmarkClick: () -> Unit) {
+fun NewsCard(
+    item: NewsItem,
+    translatedTitle: String?,
+    isTranslating: Boolean,
+    onClick: () -> Unit,
+    onBookmarkClick: () -> Unit,
+    onTranslateClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -258,10 +239,37 @@ fun NewsCard(item: NewsItem, onClick: () -> Unit, onBookmarkClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = item.title,
+                    text = translatedTitle ?: item.title,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
+                
+                if (translatedTitle == null) {
+                    if (isTranslating) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp).padding(end = 4.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Text(
+                                text = "번역 중...",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "번역하기",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier
+                                .clickable { onTranslateClick() }
+                                .padding(vertical = 4.dp)
+                        )
+                    }
+                }
+                
                 Text(
                     text = item.pubDate,
                     style = MaterialTheme.typography.bodySmall
