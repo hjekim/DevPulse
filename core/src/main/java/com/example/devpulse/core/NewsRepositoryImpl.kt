@@ -18,7 +18,6 @@ class NewsRepositoryImpl @Inject constructor(
     private val bookmarkDao: BookmarkDao
 ) : NewsRepository {
 
-    // ML Kit 번역기 설정 (영어 -> 한국어)
     private val options = TranslatorOptions.Builder()
         .setSourceLanguage(TranslateLanguage.ENGLISH)
         .setTargetLanguage(TranslateLanguage.KOREAN)
@@ -40,7 +39,8 @@ class NewsRepositoryImpl @Inject constructor(
                             title = rssItem.title ?: "No Title",
                             link = rssItem.link ?: "",
                             pubDate = rssItem.pubDate ?: "",
-                            source = sourceName
+                            source = sourceName,
+                            readingTimeMin = calculateReadingTime(rssItem.description)
                         )
                     } ?: emptyList()
                 } catch (e: Exception) {
@@ -49,6 +49,14 @@ class NewsRepositoryImpl @Inject constructor(
                 }
             }
         }.awaitAll().flatten().sortedByDescending { it.pubDate }
+    }
+
+    // 읽기 소요 시간 계산 로직
+    private fun calculateReadingTime(description: String?): Int {
+        if (description.isNullOrBlank()) return 1
+        val words = description.split("\\s+".toRegex()).size
+        val time = Math.ceil(words / 200.0).toInt()
+        return if (time < 1) 1 else time
     }
 
     override suspend fun toggleBookmark(item: NewsItem) {
@@ -61,20 +69,14 @@ class NewsRepositoryImpl @Inject constructor(
 
     override suspend fun translateText(text: String, targetLanguage: String): String {
         return try {
-            // 모델 다운로드 조건 설정
-            val conditions = DownloadConditions.Builder()
-                .build()
-            
-            // 모델이 없으면 다운로드 후 번역
+            val conditions = DownloadConditions.Builder().build()
             translator.downloadModelIfNeeded(conditions).await()
-            
-            // 온디바이스 번역 수행
             val translatedText = translator.translate(text).await()
             Log.d("NewsRepository", "ML Kit Translated: $translatedText")
             translatedText
         } catch (e: Exception) {
             Log.e("NewsRepository", "ML Kit Translation failed", e)
-            text // 실패 시 원본 반환
+            text 
         }
     }
 }

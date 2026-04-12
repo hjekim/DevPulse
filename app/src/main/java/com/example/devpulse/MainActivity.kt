@@ -48,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.devpulse.model.NewsItem
 import com.example.devpulse.ui.theme.DevPulseTheme
@@ -97,7 +96,7 @@ class MainActivity : ComponentActivity() {
                     val displayItems = if (selectedTab == 0) newsItems else bookmarks
                     
                     NewsListScreen(
-                        title = if (selectedTab == 0) "DevPulse: News" else "My Bookmarks",
+                        title = if (selectedTab == 0) "DevPulse" else "My Bookmarks",
                         newsItems = displayItems,
                         translatedTitles = translatedTitles,
                         translatingUrls = translatingUrls,
@@ -111,7 +110,6 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         onNewsClick = { item ->
                             if (item.link.isNotEmpty()) {
-                                // 🛠 Chrome Custom Tabs 실행
                                 val intent = CustomTabsIntent.Builder()
                                     .setDefaultColorSchemeParams(
                                         CustomTabColorSchemeParams.Builder()
@@ -183,8 +181,6 @@ fun NewsListScreen(
                             )
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
             
@@ -244,36 +240,41 @@ fun NewsCard(
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
                 
-                if (translatedTitle == null) {
-                    if (isTranslating) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp).padding(end = 4.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (translatedTitle == null) {
+                        if (isTranslating) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                                Text(" 번역 중...", style = MaterialTheme.typography.labelSmall)
+                            }
+                        } else {
                             Text(
-                                text = "번역 중...",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.secondary
+                                text = "번역하기",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier
+                                    .clickable { onTranslateClick() }
+                                    .padding(vertical = 4.dp)
                             )
                         }
-                    } else {
-                        Text(
-                            text = "번역하기",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier
-                                .clickable { onTranslateClick() }
-                                .padding(vertical = 4.dp)
-                        )
                     }
                 }
                 
-                Text(
-                    text = item.pubDate,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.pubDate,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "${item.readingTimeMin}분 소요",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                    )
+                }
             }
             IconButton(onClick = onBookmarkClick) {
                 Icon(

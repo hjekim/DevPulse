@@ -9,5 +9,6 @@ data class NewsItem(
     val title: String,
     val pubDate: String,
     val source: String,
-    val isBookmarked: Boolean = false
+    val isBookmarked: Boolean = false,
+    val readingTimeMin: Int = 1 // 읽기 소요 시간 (분 단위) 추가
 )
