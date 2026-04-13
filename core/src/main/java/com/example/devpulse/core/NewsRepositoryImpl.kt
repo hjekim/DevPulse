@@ -1,6 +1,8 @@
 package com.example.devpulse.core
 
+import android.content.SharedPreferences
 import android.util.Log
+import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
@@ -15,7 +17,9 @@ import javax.inject.Inject
 
 class NewsRepositoryImpl @Inject constructor(
     private val apiService: NewsApiService,
-    private val bookmarkDao: BookmarkDao
+    private val bookmarkDao: BookmarkDao,
+    private val keywordDao: KeywordDao,
+    private val sharedPreferences: SharedPreferences
 ) : NewsRepository {
 
     private val options = TranslatorOptions.Builder()
@@ -51,7 +55,6 @@ class NewsRepositoryImpl @Inject constructor(
         }.awaitAll().flatten().sortedByDescending { it.pubDate }
     }
 
-    // 읽기 소요 시간 계산 로직
     private fun calculateReadingTime(description: String?): Int {
         if (description.isNullOrBlank()) return 1
         val words = description.split("\\s+".toRegex()).size
@@ -72,11 +75,21 @@ class NewsRepositoryImpl @Inject constructor(
             val conditions = DownloadConditions.Builder().build()
             translator.downloadModelIfNeeded(conditions).await()
             val translatedText = translator.translate(text).await()
-            Log.d("NewsRepository", "ML Kit Translated: $translatedText")
             translatedText
         } catch (e: Exception) {
-            Log.e("NewsRepository", "ML Kit Translation failed", e)
             text 
         }
+    }
+
+    override fun getAllKeywords(): Flow<List<Keyword>> = keywordDao.getAllKeywords()
+    override suspend fun insertKeyword(keyword: Keyword) = keywordDao.insertKeyword(keyword)
+    override suspend fun deleteKeyword(keyword: Keyword) = keywordDao.deleteKeyword(keyword)
+
+    override fun isNotificationEnabled(): Boolean {
+        return sharedPreferences.getBoolean("notifications_enabled", true)
+    }
+
+    override fun setNotificationEnabled(enabled: Boolean) {
+        sharedPreferences.edit().putBoolean("notifications_enabled", enabled).apply()
     }
 }

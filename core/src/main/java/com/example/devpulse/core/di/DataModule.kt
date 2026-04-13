@@ -1,8 +1,10 @@
 package com.example.devpulse.core.di
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.example.devpulse.core.AppDatabase
 import com.example.devpulse.core.BookmarkDao
+import com.example.devpulse.core.KeywordDao
 import com.example.devpulse.core.NewsApiService
 import com.example.devpulse.core.NewsRepository
 import com.example.devpulse.core.NewsRepositoryImpl
@@ -31,6 +33,17 @@ object DataModule {
     }
 
     @Provides
+    fun provideKeywordDao(database: AppDatabase): KeywordDao {
+        return database.keywordDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
+        return context.getSharedPreferences("devpulse_prefs", Context.MODE_PRIVATE)
+    }
+
+    @Provides
     @Singleton
     fun provideNewsApiService(): NewsApiService {
         @Suppress("DEPRECATION")
@@ -45,8 +58,10 @@ object DataModule {
     @Singleton
     fun provideNewsRepository(
         apiService: NewsApiService,
-        bookmarkDao: BookmarkDao
+        bookmarkDao: BookmarkDao,
+        keywordDao: KeywordDao,
+        sharedPreferences: SharedPreferences
     ): NewsRepository {
-        return NewsRepositoryImpl(apiService, bookmarkDao)
+        return NewsRepositoryImpl(apiService, bookmarkDao, keywordDao, sharedPreferences)
     }
 }

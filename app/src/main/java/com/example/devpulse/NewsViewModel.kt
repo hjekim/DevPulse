@@ -1,8 +1,14 @@
 package com.example.devpulse
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.devpulse.core.NewsRepository
+import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,12 +17,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltViewModel
 class NewsViewModel @Inject constructor(
-    private val repository: NewsRepository
-) : ViewModel() {
+    private val repository: NewsRepository,
+    application: Application
+) : AndroidViewModel(application) {
 
     private val sources = mapOf(
         "Android Developers" to "https://android-developers.googleblog.com/feeds/posts/default?alt=rss",
@@ -28,6 +36,9 @@ class NewsViewModel @Inject constructor(
     private val _selectedKeyword = MutableStateFlow<String?>(null)
     private val _isRefreshing = MutableStateFlow(false)
     
+    private val _isNotificationEnabled = MutableStateFlow(repository.isNotificationEnabled())
+    val isNotificationEnabled: StateFlow<Boolean> = _isNotificationEnabled
+    
     private val _translatedTitles = MutableStateFlow<Map<String, String>>(emptyMap())
     val translatedTitles: StateFlow<Map<String, String>> = _translatedTitles
 
@@ -35,6 +46,9 @@ class NewsViewModel @Inject constructor(
     val translatingUrls: StateFlow<Set<String>> = _translatingUrls
 
     val bookmarks: StateFlow<List<NewsItem>> = repository.getBookmarks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val keywords: StateFlow<List<Keyword>> = repository.getAllKeywords()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val newsItems: StateFlow<List<NewsItem>> = combine(_allNews, _selectedKeyword, bookmarks) { all, keyword, bookmarkList ->
@@ -49,6 +63,52 @@ class NewsViewModel @Inject constructor(
 
     init {
         fetchNews()
+        if (_isNotificationEnabled.value) {
+            scheduleNewsCheck()
+        }
+    }
+
+    private fun scheduleNewsCheck() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val workRequest = PeriodicWorkRequestBuilder<NewsWorker>(1, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .build()
+
+        WorkManager.getInstance(getApplication()).enqueueUniquePeriodicWork(
+            "NewsCheckWork",
+            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+    }
+
+    private fun cancelNewsCheck() {
+        WorkManager.getInstance(getApplication()).cancelUniqueWork("NewsCheckWork")
+    }
+
+    fun toggleNotification(enabled: Boolean) {
+        _isNotificationEnabled.value = enabled
+        repository.setNotificationEnabled(enabled)
+        
+        if (enabled) {
+            scheduleNewsCheck()
+        } else {
+            cancelNewsCheck()
+        }
+    }
+
+    fun addKeyword(word: String) {
+        viewModelScope.launch {
+            repository.insertKeyword(Keyword(word))
+        }
+    }
+
+    fun removeKeyword(keyword: Keyword) {
+        viewModelScope.launch {
+            repository.deleteKeyword(keyword)
+        }
     }
 
     fun setKeyword(keyword: String?) {
