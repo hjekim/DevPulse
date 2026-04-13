@@ -10,11 +10,13 @@ import androidx.work.WorkManager
 import com.example.devpulse.core.NewsRepository
 import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
+import com.example.devpulse.model.RssSource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -25,12 +27,6 @@ class NewsViewModel @Inject constructor(
     private val repository: NewsRepository,
     application: Application
 ) : AndroidViewModel(application) {
-
-    private val sources = mapOf(
-        "Android Developers" to "https://android-developers.googleblog.com/feeds/posts/default?alt=rss",
-        "Medium (Android)" to "https://medium.com/feed/androiddevelopers",
-        "Kotlin Blog" to "https://blog.jetbrains.com/kotlin/feed/"
-    )
 
     private val _allNews = MutableStateFlow<List<NewsItem>>(emptyList())
     private val _selectedKeyword = MutableStateFlow<String?>(null)
@@ -51,6 +47,9 @@ class NewsViewModel @Inject constructor(
     val keywords: StateFlow<List<Keyword>> = repository.getAllKeywords()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val rssSources: StateFlow<List<RssSource>> = repository.getAllRssSources()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val newsItems: StateFlow<List<NewsItem>> = combine(_allNews, _selectedKeyword, bookmarks) { all, keyword, bookmarkList ->
         val filtered = if (keyword == null) all else all.filter { it.title.contains(keyword, ignoreCase = true) }
         filtered.map { item ->
@@ -62,9 +61,28 @@ class NewsViewModel @Inject constructor(
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     init {
+        initializeDefaultDataIfNeeded()
         fetchNews()
         if (_isNotificationEnabled.value) {
             scheduleNewsCheck()
+        }
+    }
+
+    private fun initializeDefaultDataIfNeeded() {
+        if (!repository.isDefaultsInitialized()) {
+            viewModelScope.launch {
+                val defaultRss = listOf(
+                    RssSource("https://android-developers.googleblog.com/feeds/posts/default?alt=rss", "Android Developers"),
+                    RssSource("https://medium.com/feed/androiddevelopers", "Medium (Android)"),
+                    RssSource("https://blog.jetbrains.com/kotlin/feed/", "Kotlin Blog")
+                )
+                defaultRss.forEach { repository.insertRssSource(it) }
+
+                val defaultKeywords = listOf("Compose", "Kotlin", "KMP", "Studio", "Performance")
+                defaultKeywords.forEach { repository.insertKeyword(Keyword(it)) }
+
+                repository.setDefaultsInitialized(true)
+            }
         }
     }
 
@@ -91,23 +109,28 @@ class NewsViewModel @Inject constructor(
     fun toggleNotification(enabled: Boolean) {
         _isNotificationEnabled.value = enabled
         repository.setNotificationEnabled(enabled)
-        
-        if (enabled) {
-            scheduleNewsCheck()
-        } else {
-            cancelNewsCheck()
-        }
+        if (enabled) scheduleNewsCheck() else cancelNewsCheck()
     }
 
     fun addKeyword(word: String) {
-        viewModelScope.launch {
-            repository.insertKeyword(Keyword(word))
-        }
+        viewModelScope.launch { repository.insertKeyword(Keyword(word)) }
     }
 
     fun removeKeyword(keyword: Keyword) {
-        viewModelScope.launch {
-            repository.deleteKeyword(keyword)
+        viewModelScope.launch { repository.deleteKeyword(keyword) }
+    }
+
+    fun addRssSource(name: String, url: String) {
+        viewModelScope.launch { 
+            repository.insertRssSource(RssSource(url, name))
+            fetchNews()
+        }
+    }
+
+    fun removeRssSource(source: RssSource) {
+        viewModelScope.launch { 
+            repository.deleteRssSource(source)
+            fetchNews()
         }
     }
 
@@ -116,17 +139,21 @@ class NewsViewModel @Inject constructor(
     }
 
     fun toggleBookmark(item: NewsItem) {
-        viewModelScope.launch {
-            repository.toggleBookmark(item)
-        }
+        viewModelScope.launch { repository.toggleBookmark(item) }
     }
 
     fun fetchNews() {
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                val fetchedNews = repository.fetchNewsFromSources(sources)
-                _allNews.value = fetchedNews
+                val dbSources = repository.getAllRssSources().first()
+                if (dbSources.isNotEmpty()) {
+                    val sourcesMap = dbSources.associate { it.name to it.url }
+                    val fetchedNews = repository.fetchNewsFromSources(sourcesMap)
+                    _allNews.value = fetchedNews
+                } else {
+                    _allNews.value = emptyList()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {

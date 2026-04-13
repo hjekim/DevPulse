@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
+import com.example.devpulse.model.RssSource
 import com.google.mlkit.common.model.DownloadConditions
 import com.google.mlkit.nl.translate.TranslateLanguage
 import com.google.mlkit.nl.translate.Translation
@@ -19,6 +20,7 @@ class NewsRepositoryImpl @Inject constructor(
     private val apiService: NewsApiService,
     private val bookmarkDao: BookmarkDao,
     private val keywordDao: KeywordDao,
+    private val rssSourceDao: RssSourceDao,
     private val sharedPreferences: SharedPreferences
 ) : NewsRepository {
 
@@ -91,5 +93,17 @@ class NewsRepositoryImpl @Inject constructor(
 
     override fun setNotificationEnabled(enabled: Boolean) {
         sharedPreferences.edit().putBoolean("notifications_enabled", enabled).apply()
+    }
+
+    override fun getAllRssSources(): Flow<List<RssSource>> = rssSourceDao.getAllSources()
+    override suspend fun insertRssSource(source: RssSource) = rssSourceDao.insertSource(source)
+    override suspend fun deleteRssSource(source: RssSource) = rssSourceDao.deleteSource(source)
+
+    override fun isDefaultsInitialized(): Boolean {
+        return sharedPreferences.getBoolean("defaults_initialized", false)
+    }
+
+    override fun setDefaultsInitialized(initialized: Boolean) {
+        sharedPreferences.edit().putBoolean("defaults_initialized", initialized).apply()
     }
 }

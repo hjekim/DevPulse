@@ -6,11 +6,17 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
+import com.example.devpulse.model.RssSource
 
-@Database(entities = [NewsItem::class, Keyword::class], version = 3)
+@Database(
+    entities = [NewsItem::class, Keyword::class, RssSource::class], 
+    version = 4,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun keywordDao(): KeywordDao
+    abstract fun rssSourceDao(): RssSourceDao
 
     companion object {
         @Volatile

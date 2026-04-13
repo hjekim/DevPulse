@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.example.devpulse.core.AppDatabase
 import com.example.devpulse.core.BookmarkDao
 import com.example.devpulse.core.KeywordDao
+import com.example.devpulse.core.RssSourceDao
 import com.example.devpulse.core.NewsApiService
 import com.example.devpulse.core.NewsRepository
 import com.example.devpulse.core.NewsRepositoryImpl
@@ -38,6 +39,11 @@ object DataModule {
     }
 
     @Provides
+    fun provideRssSourceDao(database: AppDatabase): RssSourceDao {
+        return database.rssSourceDao()
+    }
+
+    @Provides
     @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return context.getSharedPreferences("devpulse_prefs", Context.MODE_PRIVATE)
@@ -60,8 +66,9 @@ object DataModule {
         apiService: NewsApiService,
         bookmarkDao: BookmarkDao,
         keywordDao: KeywordDao,
+        rssSourceDao: RssSourceDao,
         sharedPreferences: SharedPreferences
     ): NewsRepository {
-        return NewsRepositoryImpl(apiService, bookmarkDao, keywordDao, sharedPreferences)
+        return NewsRepositoryImpl(apiService, bookmarkDao, keywordDao, rssSourceDao, sharedPreferences)
     }
 }

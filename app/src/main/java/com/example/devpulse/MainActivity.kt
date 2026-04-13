@@ -1,5 +1,6 @@
 package com.example.devpulse
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -46,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,10 +60,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
+import com.example.devpulse.model.RssSource
 import com.example.devpulse.ui.theme.DevPulseTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -78,6 +81,7 @@ class MainActivity : ComponentActivity() {
                 val newsItems by viewModel.newsItems.collectAsState()
                 val bookmarks by viewModel.bookmarks.collectAsState()
                 val keywords by viewModel.keywords.collectAsState()
+                val rssSources by viewModel.rssSources.collectAsState()
                 val isNotificationEnabled by viewModel.isNotificationEnabled.collectAsState()
                 val selectedKeyword by viewModel.selectedKeyword.collectAsState()
                 val isRefreshing by viewModel.isRefreshing.collectAsState()
@@ -86,6 +90,12 @@ class MainActivity : ComponentActivity() {
                 
                 val context = LocalContext.current
                 val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
+
+                LaunchedEffect(Unit) {
+                    intent?.getStringExtra("news_url")?.let { url ->
+                        openCustomTab(context, url, primaryColor)
+                    }
+                }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -115,6 +125,7 @@ class MainActivity : ComponentActivity() {
                         translatingUrls = translatingUrls,
                         selectedKeyword = if (selectedTab == 0) selectedKeyword else null,
                         keywords = keywords,
+                        rssSources = rssSources,
                         isNotificationEnabled = isNotificationEnabled,
                         showFilters = selectedTab == 0,
                         isRefreshing = isRefreshing,
@@ -125,23 +136,37 @@ class MainActivity : ComponentActivity() {
                         onAddKeyword = { viewModel.addKeyword(it) },
                         onDeleteKeyword = { viewModel.removeKeyword(it) },
                         onToggleNotification = { viewModel.toggleNotification(it) },
+                        onAddRssSource = { name, url -> viewModel.addRssSource(name, url) },
+                        onDeleteRssSource = { viewModel.removeRssSource(it) },
                         modifier = Modifier.padding(innerPadding),
                         onNewsClick = { item ->
                             if (item.link.isNotEmpty()) {
-                                val intent = CustomTabsIntent.Builder()
-                                    .setDefaultColorSchemeParams(
-                                        CustomTabColorSchemeParams.Builder()
-                                            .setToolbarColor(primaryColor)
-                                            .build()
-                                    )
-                                    .setShowTitle(true)
-                                    .build()
-                                intent.launchUrl(context, Uri.parse(item.link))
+                                openCustomTab(context, item.link, primaryColor)
                             }
                         }
                     )
                 }
             }
+        }
+    }
+
+    private fun openCustomTab(context: android.content.Context, url: String, toolbarColor: Int) {
+        val intent = CustomTabsIntent.Builder()
+            .setDefaultColorSchemeParams(
+                CustomTabColorSchemeParams.Builder()
+                    .setToolbarColor(toolbarColor)
+                    .build()
+            )
+            .setShowTitle(true)
+            .build()
+        intent.launchUrl(context, Uri.parse(url))
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        val url = intent?.getStringExtra("news_url")
+        if (url != null) {
+            openCustomTab(this, url, 0xFF6200EE.toInt()) 
         }
     }
 }
@@ -155,6 +180,7 @@ fun NewsListScreen(
     translatingUrls: Set<String>,
     selectedKeyword: String?,
     keywords: List<Keyword>,
+    rssSources: List<RssSource>,
     isNotificationEnabled: Boolean,
     showFilters: Boolean,
     isRefreshing: Boolean,
@@ -165,11 +191,13 @@ fun NewsListScreen(
     onAddKeyword: (String) -> Unit,
     onDeleteKeyword: (Keyword) -> Unit,
     onToggleNotification: (Boolean) -> Unit,
+    onAddRssSource: (String, String) -> Unit,
+    onDeleteRssSource: (RssSource) -> Unit,
     modifier: Modifier = Modifier,
     onNewsClick: (NewsItem) -> Unit = {}
 ) {
     var showKeywordDialog by remember { mutableStateOf(false) }
-    val filterKeywords = listOf("Compose", "Kotlin", "KMP", "Studio", "Performance")
+    var showRssDialog by remember { mutableStateOf(false) }
 
     if (showKeywordDialog) {
         KeywordSettingsDialog(
@@ -179,6 +207,15 @@ fun NewsListScreen(
             onDelete = onDeleteKeyword,
             onToggleNotification = onToggleNotification,
             onDismiss = { showKeywordDialog = false }
+        )
+    }
+
+    if (showRssDialog) {
+        RssSourceSettingsDialog(
+            currentSources = rssSources,
+            onAdd = onAddRssSource,
+            onDelete = onDeleteRssSource,
+            onDismiss = { showRssDialog = false }
         )
     }
 
@@ -200,12 +237,17 @@ fun NewsListScreen(
                         style = MaterialTheme.typography.headlineMedium
                     )
                     if (showFilters) {
-                        IconButton(onClick = { showKeywordDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications, 
-                                contentDescription = "Keyword Alerts",
-                                tint = if (isNotificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Row {
+                            IconButton(onClick = { showRssDialog = true }) {
+                                Icon(Icons.Default.Settings, contentDescription = "RSS Sources")
+                            }
+                            IconButton(onClick = { showKeywordDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Notifications, 
+                                    contentDescription = "Keyword Alerts",
+                                    tint = if (isNotificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -222,11 +264,11 @@ fun NewsListScreen(
                                 label = { Text("All") }
                             )
                         }
-                        items(filterKeywords) { keyword ->
+                        items(keywords) { keyword ->
                             FilterChip(
-                                selected = selectedKeyword == keyword,
-                                onClick = { onKeywordSelected(keyword) },
-                                label = { Text(keyword) }
+                                selected = selectedKeyword == keyword.word,
+                                onClick = { onKeywordSelected(keyword.word) },
+                                label = { Text(keyword.word) }
                             )
                         }
                     }
@@ -259,6 +301,77 @@ fun NewsListScreen(
             }
         }
     }
+}
+
+@Composable
+fun RssSourceSettingsDialog(
+    currentSources: List<RssSource>,
+    onAdd: (String, String) -> Unit,
+    onDelete: (RssSource) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var newName by remember { mutableStateOf("") }
+    var newUrl by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manage RSS Sources") },
+        text = {
+            Column {
+                Text("추가할 기술 블로그의 이름과 RSS URL을 입력하세요.")
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+                    label = { Text("Blog Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = newUrl,
+                    onValueChange = { newUrl = it },
+                    label = { Text("RSS URL") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Button(
+                    onClick = {
+                        if (newName.isNotBlank() && newUrl.isNotBlank()) {
+                            onAdd(newName, newUrl)
+                            newName = ""
+                            newUrl = ""
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.End).padding(top = 8.dp)
+                ) {
+                    Text("Add Source")
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Registered Sources:", style = MaterialTheme.typography.labelLarge)
+                LazyColumn(modifier = Modifier.height(200.dp)) {
+                    items(currentSources) { source ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(source.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(source.url, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            }
+                            IconButton(onClick = { onDelete(source) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        }
+    )
 }
 
 @Composable
