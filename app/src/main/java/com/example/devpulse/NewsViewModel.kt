@@ -61,28 +61,29 @@ class NewsViewModel @Inject constructor(
     val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     init {
-        initializeDefaultDataIfNeeded()
-        fetchNews()
-        if (_isNotificationEnabled.value) {
-            scheduleNewsCheck()
+        viewModelScope.launch {
+            initializeDefaultDataIfNeeded()
+            fetchNews()
+            if (_isNotificationEnabled.value) {
+                scheduleNewsCheck()
+            }
         }
     }
 
-    private fun initializeDefaultDataIfNeeded() {
+    private suspend fun initializeDefaultDataIfNeeded() {
         if (!repository.isDefaultsInitialized()) {
-            viewModelScope.launch {
-                val defaultRss = listOf(
-                    RssSource("https://android-developers.googleblog.com/feeds/posts/default?alt=rss", "Android Developers"),
-                    RssSource("https://medium.com/feed/androiddevelopers", "Medium (Android)"),
-                    RssSource("https://blog.jetbrains.com/kotlin/feed/", "Kotlin Blog")
-                )
-                defaultRss.forEach { repository.insertRssSource(it) }
+            val defaultRss = listOf(
+                RssSource("https://toss.tech/rss.xml", "Toss"),
+                RssSource("https://android-developers.googleblog.com/feeds/posts/default?alt=rss", "Android Developers"),
+                RssSource("https://medium.com/feed/androiddevelopers", "Medium (Android)"),
+                RssSource("https://blog.jetbrains.com/kotlin/feed/", "Kotlin Blog")
+            )
+            defaultRss.forEach { repository.insertRssSource(it) }
 
-                val defaultKeywords = listOf("Compose", "Kotlin", "KMP", "Studio", "Performance")
-                defaultKeywords.forEach { repository.insertKeyword(Keyword(it)) }
+            val defaultKeywords = listOf("Compose", "Kotlin", "KMP", "Studio", "Performance")
+            defaultKeywords.forEach { repository.insertKeyword(Keyword(it)) }
 
-                repository.setDefaultsInitialized(true)
-            }
+            repository.setDefaultsInitialized(true)
         }
     }
 
@@ -151,8 +152,6 @@ class NewsViewModel @Inject constructor(
                     val sourcesMap = dbSources.associate { it.name to it.url }
                     val fetchedNews = repository.fetchNewsFromSources(sourcesMap)
                     _allNews.value = fetchedNews
-                } else {
-                    _allNews.value = emptyList()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

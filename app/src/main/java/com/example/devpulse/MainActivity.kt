@@ -10,25 +10,12 @@ import androidx.activity.viewModels
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -36,54 +23,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.devpulse.model.Keyword
 import com.example.devpulse.model.NewsItem
 import com.example.devpulse.model.RssSource
@@ -100,7 +58,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             DevPulseTheme {
                 var selectedTab by remember { mutableIntStateOf(0) }
-                
                 val newsItems by viewModel.newsItems.collectAsState()
                 val bookmarks by viewModel.bookmarks.collectAsState()
                 val keywords by viewModel.keywords.collectAsState()
@@ -123,10 +80,7 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     bottomBar = {
-                        Surface(
-                            tonalElevation = 8.dp,
-                            shadowElevation = 16.dp
-                        ) {
+                        Surface(tonalElevation = 3.dp, shadowElevation = 8.dp) {
                             NavigationBar(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = MaterialTheme.colorScheme.primary,
@@ -134,24 +88,22 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 0,
                                     onClick = { selectedTab = 0 },
-                                    label = { Text("News") },
-                                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "News") }
+                                    label = { Text("피드") },
+                                    icon = { Icon(Icons.AutoMirrored.Filled.List, null) }
                                 )
                                 NavigationBarItem(
                                     selected = selectedTab == 1,
                                     onClick = { selectedTab = 1 },
-                                    label = { Text("Bookmarks") },
-                                    icon = { Icon(Icons.Default.Bookmark, contentDescription = "Bookmarks") }
+                                    label = { Text("북마크") },
+                                    icon = { Icon(Icons.Default.Bookmark, null) }
                                 )
                             }
                         }
                     }
                 ) { innerPadding ->
-                    val displayItems = if (selectedTab == 0) newsItems else bookmarks
-                    
                     NewsListScreen(
-                        title = if (selectedTab == 0) "DevPulse" else "My Bookmarks",
-                        newsItems = displayItems,
+                        title = if (selectedTab == 0) "DevPulse" else "Saved Stories",
+                        newsItems = if (selectedTab == 0) newsItems else bookmarks,
                         translatedTitles = translatedTitles,
                         translatingUrls = translatingUrls,
                         selectedKeyword = if (selectedTab == 0) selectedKeyword else null,
@@ -183,11 +135,7 @@ class MainActivity : ComponentActivity() {
 
     private fun openCustomTab(context: android.content.Context, url: String, toolbarColor: Int) {
         val intent = CustomTabsIntent.Builder()
-            .setDefaultColorSchemeParams(
-                CustomTabColorSchemeParams.Builder()
-                    .setToolbarColor(toolbarColor)
-                    .build()
-            )
+            .setDefaultColorSchemeParams(CustomTabColorSchemeParams.Builder().setToolbarColor(toolbarColor).build())
             .setShowTitle(true)
             .build()
         intent.launchUrl(context, Uri.parse(url))
@@ -195,8 +143,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        val url = intent?.getStringExtra("news_url")
-        if (url != null) {
+        intent?.getStringExtra("news_url")?.let { url ->
             openCustomTab(this, url, 0xFF6200EE.toInt()) 
         }
     }
@@ -229,211 +176,97 @@ fun NewsListScreen(
 ) {
     var showKeywordDialog by remember { mutableStateOf(false) }
     var showRssDialog by remember { mutableStateOf(false) }
-    
     val filterKeywords = remember(keywords) {
-        (listOf("Compose", "Kotlin", "KMP", "Studio", "Performance") + keywords.map { it.word }).distinct()
+        keywords.map { it.word }.distinct()
     }
 
     if (showKeywordDialog) {
-        KeywordSettingsDialog(
-            currentKeywords = keywords,
-            isNotificationEnabled = isNotificationEnabled,
-            onAdd = onAddKeyword,
-            onDelete = onDeleteKeyword,
-            onToggleNotification = onToggleNotification,
-            onDismiss = { showKeywordDialog = false }
-        )
+        KeywordSettingsDialog(keywords, isNotificationEnabled, onAddKeyword, onDeleteKeyword, onToggleNotification, { showKeywordDialog = false })
     }
-
     if (showRssDialog) {
-        RssSourceSettingsDialog(
-            currentSources = rssSources,
-            onAdd = onAddRssSource,
-            onDelete = onDeleteRssSource,
-            onDismiss = { showRssDialog = false }
-        )
+        RssSourceSettingsDialog(rssSources, onAddRssSource, onDeleteRssSource, { showRssDialog = false })
     }
 
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
-        modifier = modifier.background(MaterialTheme.colorScheme.surface)
+        modifier = modifier.background(MaterialTheme.colorScheme.background)
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
-                HeaderSection(
-                    title = title,
-                    showActions = showFilters,
-                    isNotificationEnabled = isNotificationEnabled,
-                    onRssClick = { showRssDialog = true },
-                    onNotificationClick = { showKeywordDialog = true }
-                )
-                
-                if (showFilters) {
-                    FilterSection(
-                        selectedKeyword = selectedKeyword,
-                        filterKeywords = filterKeywords,
-                        onKeywordSelected = onKeywordSelected
+                PremiumHeader(title, showFilters, isNotificationEnabled, { showRssDialog = true }, { showKeywordDialog = true })
+                if (showFilters && filterKeywords.isNotEmpty()) {
+                    FilterSection(selectedKeyword, filterKeywords, onKeywordSelected)
+                }
+            }
+            
+            if (isRefreshing && newsItems.isEmpty()) {
+                items(5) { ShimmerNewsCard() }
+            } else if (newsItems.isEmpty()) {
+                item { EmptyState() }
+            } else {
+                items(newsItems, key = { it.link }) { item ->
+                    PremiumNewsCard(
+                        item = item,
+                        translatedTitle = translatedTitles[item.link],
+                        isTranslating = translatingUrls.contains(item.link),
+                        onClick = { onNewsClick(item) },
+                        onBookmarkClick = { onBookmarkClick(item) },
+                        onTranslateClick = { onTranslateClick(item) }
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
-            }
-            
-            if (newsItems.isEmpty() && !isRefreshing) {
-                item {
-                    EmptyState()
-                }
-            }
-
-            items(newsItems, key = { it.link }) { item ->
-                NewsCard(
-                    item = item,
-                    translatedTitle = translatedTitles[item.link],
-                    isTranslating = translatingUrls.contains(item.link),
-                    onClick = { onNewsClick(item) },
-                    onBookmarkClick = { onBookmarkClick(item) },
-                    onTranslateClick = { onTranslateClick(item) }
-                )
             }
         }
     }
 }
 
 @Composable
-fun HeaderSection(
-    title: String,
-    showActions: Boolean,
-    isNotificationEnabled: Boolean,
-    onRssClick: () -> Unit,
-    onNotificationClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 20.dp, end = 12.dp, top = 24.dp, bottom = 8.dp)
+fun PremiumHeader(title: String, showActions: Boolean, isNotificationEnabled: Boolean, onRssClick: () -> Unit, onNotificationClick: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.displaySmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-1).sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            
-            if (showActions) {
-                Row {
-                    IconButton(onClick = onRssClick) {
-                        Icon(
-                            Icons.Default.Settings, 
-                            contentDescription = "RSS Sources",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onNotificationClick) {
-                        Icon(
-                            imageVector = if (isNotificationEnabled) Icons.Default.NotificationsActive else Icons.Default.Notifications, 
-                            contentDescription = "Keyword Alerts",
-                            tint = if (isNotificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-        Text(
-            text = "Stay updated with Android & Kotlin news",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
-    }
-}
-
-@Composable
-fun FilterSection(
-    selectedKeyword: String?,
-    filterKeywords: List<String>,
-    onKeywordSelected: (String?) -> Unit
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 20.dp),
-        modifier = Modifier.padding(vertical = 12.dp)
-    ) {
-        item {
-            FilterChip(
-                selected = selectedKeyword == null,
-                onClick = { onKeywordSelected(null) },
-                label = { Text("All Feed") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
-                border = null,
-                shape = RoundedCornerShape(12.dp)
-            )
-        }
-        items(filterKeywords) { keyword ->
-            FilterChip(
-                selected = selectedKeyword == keyword,
-                onClick = { onKeywordSelected(keyword) },
-                label = { Text(keyword) },
-                shape = RoundedCornerShape(12.dp),
-                border = null
-            )
-        }
-    }
-}
-
-@Composable
-fun EmptyState() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 80.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
+        Column(
             modifier = Modifier
-                .size(120.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
+                .padding(start = 20.dp, end = 12.dp, top = 20.dp, bottom = 12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title, 
+                    style = MaterialTheme.typography.displaySmall, 
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = (-1).sp
+                )
+                if (showActions) {
+                    Row {
+                        IconButton(onClick = onRssClick) { 
+                            Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) 
+                        }
+                        IconButton(onClick = onNotificationClick) {
+                            Icon(
+                                if (isNotificationEnabled) Icons.Default.NotificationsActive else Icons.Default.Notifications, 
+                                null, 
+                                tint = if (isNotificationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            Text(
+                text = "기술 트렌드를 한눈에 확인하세요", 
+                style = MaterialTheme.typography.bodyMedium, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
         }
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = "No updates found",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-        Text(
-            text = "Check your RSS sources or try refreshing",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
 @Composable
-fun NewsCard(
+fun PremiumNewsCard(
     item: NewsItem,
     translatedTitle: String?,
     isTranslating: Boolean,
@@ -444,114 +277,96 @@ fun NewsCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
             .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = item.source,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                IconButton(
-                    onClick = onBookmarkClick,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = if (item.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        contentDescription = "Bookmark",
-                        tint = if (item.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            Text(
-                text = translatedTitle ?: item.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    lineHeight = 22.sp,
-                    fontWeight = FontWeight.SemiBold
-                ),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
+        Column {
+            AsyncImage(
+                model = item.imageUrl ?: "https://images.unsplash.com/photo-1607705703571-c5a8695f18f6?q=80&w=1000",
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+                contentScale = ContentScale.Crop
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+
+            Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Timer,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = item.source.uppercase(),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.Timer, null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
-                        text = " ${item.readingTimeMin}m read",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = " • ${item.pubDate.split(" ").take(3).joinToString(" ")}",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = " ${item.readingTimeMin}분", 
+                        style = MaterialTheme.typography.labelSmall, 
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
-                if (translatedTitle == null) {
-                    if (isTranslating) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(14.dp), 
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                "Translating", 
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = translatedTitle ?: item.title,
+                    style = MaterialTheme.typography.titleLarge.copy(lineHeight = 28.sp),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (translatedTitle == null) {
+                        if (isTranslating) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("번역 중...", style = MaterialTheme.typography.labelSmall)
+                            }
+                        } else {
+                            Surface(
+                                onClick = onTranslateClick,
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "번역하기",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     } else {
-                        Surface(
-                            onClick = onTranslateClick,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = "Translate",
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(1.dp))
+                    }
+                    
+                    IconButton(onClick = onBookmarkClick) {
+                        Icon(
+                            imageVector = if (item.isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, 
+                            contentDescription = null, 
+                            tint = if (item.isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -560,167 +375,137 @@ fun NewsCard(
 }
 
 @Composable
-fun RssSourceSettingsDialog(
-    currentSources: List<RssSource>,
-    onAdd: (String, String) -> Unit,
-    onDelete: (RssSource) -> Unit,
-    onDismiss: () -> Unit
-) {
+fun ShimmerNewsCard() {
+    val transition = rememberInfiniteTransition(label = "")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f, targetValue = 1000f,
+        animationSpec = infiniteRepeatable(tween(1200, easing = LinearEasing), RepeatMode.Restart), label = ""
+    )
+    val shimmerColors = listOf(Color.LightGray.copy(alpha = 0.6f), Color.LightGray.copy(alpha = 0.2f), Color.LightGray.copy(alpha = 0.6f))
+    val brush = Brush.linearGradient(colors = shimmerColors, start = Offset.Zero, end = Offset(translateAnim, translateAnim))
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column {
+            Box(modifier = Modifier.fillMaxWidth().height(180.dp).background(brush))
+            Column(modifier = Modifier.padding(16.dp)) {
+                Box(modifier = Modifier.width(80.dp).height(12.dp).background(brush))
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(24.dp).background(brush))
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.width(200.dp).height(24.dp).background(brush))
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterSection(selectedKeyword: String?, filterKeywords: List<String>, onKeywordSelected: (String?) -> Unit) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp), 
+        contentPadding = PaddingValues(horizontal = 20.dp), 
+        modifier = Modifier.padding(vertical = 12.dp)
+    ) {
+        item {
+            FilterChip(
+                selected = selectedKeyword == null, 
+                onClick = { onKeywordSelected(null) },
+                label = { Text("전체 피드") }, 
+                shape = RoundedCornerShape(14.dp), 
+                border = null,
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary, 
+                    selectedLabelColor = Color.White
+                )
+            )
+        }
+        items(filterKeywords) { keyword ->
+            FilterChip(
+                selected = selectedKeyword == keyword, 
+                onClick = { onKeywordSelected(keyword) }, 
+                label = { Text(keyword) }, 
+                shape = RoundedCornerShape(14.dp), 
+                border = null
+            )
+        }
+    }
+}
+
+@Composable
+fun EmptyState() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(top = 100.dp), 
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Feed, 
+            contentDescription = null, 
+            modifier = Modifier.size(80.dp), 
+            tint = MaterialTheme.colorScheme.outlineVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("오늘의 소식이 없습니다", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.outline)
+    }
+}
+
+@Composable
+fun RssSourceSettingsDialog(currentSources: List<RssSource>, onAdd: (String, String) -> Unit, onDelete: (RssSource) -> Unit, onDismiss: () -> Unit) {
     var newName by remember { mutableStateOf("") }
     var newUrl by remember { mutableStateOf("") }
-
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
-        title = { Text("Manage Sources", fontWeight = FontWeight.Bold) },
+        title = { Text("소스 관리", fontWeight = FontWeight.ExtraBold) },
         text = {
             Column {
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    label = { Text("Source Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = newUrl,
-                    onValueChange = { newUrl = it },
-                    label = { Text("RSS URL") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                Button(
-                    onClick = {
-                        if (newName.isNotBlank() && newUrl.isNotBlank()) {
-                            onAdd(newName, newUrl)
-                            newName = ""
-                            newUrl = ""
-                        }
-                    },
-                    modifier = Modifier.align(Alignment.End).padding(top = 16.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add")
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-                Text("Registered", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                OutlinedTextField(newName, { newName = it }, label = { Text("이름") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(newUrl, { newUrl = it }, label = { Text("RSS 주소") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                Button({ if (newName.isNotBlank() && newUrl.isNotBlank()) { onAdd(newName, newUrl); newName = ""; newUrl = "" } }, modifier = Modifier.align(Alignment.End).padding(top = 12.dp)) { Text("추가") }
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Text("등록된 소스", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
                 LazyColumn(modifier = Modifier.height(200.dp)) {
-                    items(currentSources) { source ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(source.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                                Text(source.url, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                            IconButton(onClick = { onDelete(source) }) {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
+                    items(currentSources) { Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) { Text(it.name, fontWeight = FontWeight.Bold); Text(it.url, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                        IconButton({ onDelete(it) }) { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                    }}
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        }
+        confirmButton = { TextButton(onDismiss) { Text("완료") } }
     )
 }
 
 @Composable
-fun KeywordSettingsDialog(
-    currentKeywords: List<Keyword>,
-    isNotificationEnabled: Boolean,
-    onAdd: (String) -> Unit,
-    onDelete: (Keyword) -> Unit,
-    onToggleNotification: (Boolean) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var newKeyword by remember { mutableStateOf("") }
-
+fun KeywordSettingsDialog(keywords: List<Keyword>, enabled: Boolean, onAdd: (String) -> Unit, onDelete: (Keyword) -> Unit, onToggle: (Boolean) -> Unit, onDismiss: () -> Unit) {
+    var word by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(28.dp),
-        title = { Text("Alert Keywords", fontWeight = FontWeight.Bold) },
+        title = { Text("알림 키워드", fontWeight = FontWeight.ExtraBold) },
         text = {
             Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Enable Notifications", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                    Switch(checked = isNotificationEnabled, onCheckedChange = onToggleNotification)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("알림 활성화"); Switch(enabled, onToggle)
                 }
-                Spacer(modifier = Modifier.height(20.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(
-                        value = newKeyword,
-                        onValueChange = { newKeyword = it },
-                        modifier = Modifier.weight(1f),
-                        placeholder = { Text("Add keyword...") },
-                        singleLine = true,
-                        enabled = isNotificationEnabled,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = { if (newKeyword.isNotBlank()) { onAdd(newKeyword); newKeyword = "" } },
-                        enabled = isNotificationEnabled,
-                        modifier = Modifier.background(
-                            if(isNotificationEnabled) MaterialTheme.colorScheme.primary else Color.LightGray, 
-                            CircleShape
-                        )
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
-                    }
+                Spacer(modifier = Modifier.height(12.dp))
+                Row {
+                    OutlinedTextField(word, { word = it }, placeholder = { Text("키워드") }, modifier = Modifier.weight(1f), enabled = enabled, shape = RoundedCornerShape(12.dp))
+                    IconButton({ if (word.isNotBlank()) { onAdd(word); word = "" } }, enabled = enabled) { Icon(Icons.Default.AddCircle, null, tint = MaterialTheme.colorScheme.primary) }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
-                Text("My Keywords", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Text("내 키워드", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(vertical = 8.dp))
                 LazyColumn(modifier = Modifier.height(200.dp)) {
-                    items(currentKeywords) { keyword ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(keyword.word, style = MaterialTheme.typography.bodyLarge)
-                            IconButton(onClick = { onDelete(keyword) }, enabled = isNotificationEnabled) {
-                                Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                            }
-                        }
-                    }
+                    items(keywords) { Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text(it.word, modifier = Modifier.padding(8.dp)); IconButton({ onDelete(it) }, enabled = enabled) { Icon(Icons.Default.RemoveCircleOutline, null, tint = MaterialTheme.colorScheme.error) }
+                    }}
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        }
-    )
-}
-
-@Composable
-fun ActionText(text: String, onClick: () -> Unit) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.secondary,
-        modifier = Modifier
-            .clickable { onClick() }
-            .padding(vertical = 4.dp)
+        confirmButton = { TextButton(onDismiss) { Text("완료") } }
     )
 }

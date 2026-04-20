@@ -10,7 +10,7 @@ import com.example.devpulse.model.RssSource
 
 @Database(
     entities = [NewsItem::class, Keyword::class, RssSource::class], 
-    version = 4,
+    version = 5, 
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -46,7 +46,8 @@ class NewsRepositoryImpl @Inject constructor(
                             link = rssItem.link ?: "",
                             pubDate = rssItem.pubDate ?: "",
                             source = sourceName,
-                            readingTimeMin = calculateReadingTime(rssItem.description)
+                            readingTimeMin = calculateReadingTime(rssItem.description),
+                            imageUrl = extractImageUrl(rssItem.description)
                         )
                     } ?: emptyList()
                 } catch (e: Exception) {
@@ -55,6 +56,12 @@ class NewsRepositoryImpl @Inject constructor(
                 }
             }
         }.awaitAll().flatten().sortedByDescending { it.pubDate }
+    }
+
+    private fun extractImageUrl(description: String?): String? {
+        if (description == null) return null
+        val regex = "<img[^>]+src=\"([^\">]+)\"".toRegex()
+        return regex.find(description)?.groupValues?.get(1)
     }
 
     private fun calculateReadingTime(description: String?): Int {
