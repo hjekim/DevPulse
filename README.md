@@ -1,16 +1,31 @@
 # 🚀 DevPulse (데브펄스)
 
-DevPulse는 전 세계 주요 기술 블로그와 RSS 피드를 실시간으로 수집하여 개발자들에게 최신 트렌드를 제공합니다.
+> **개발자를 위한 스마트 기술 뉴스 큐레이션 및 실시간 트렌드 수집기**
+
+DevPulse는 전 세계 주요 기술 블로그와 RSS 피드를 실시간으로 수집하여 개발자들에게 최신 트렌드를 제공합니다. **온디바이스 AI 번역**과 **관심 키워드 백그라운드 알림** 기능을 통해 중요한 소식을 놓치지 않게 도와주는 스마트 뉴스 앱입니다.
+
+---
+
+## 📱 Screenshots
+
+| 뉴스 피드 | 북마크 |
+| :---: | :---: |
+| <img src="screenshots/main_feed.jpg" width="320"> | <img src="screenshots/bookmark.jpg" width="320"> |
+| **알림 키워드 설정** | **RSS 소스 관리** |
+| <img src="screenshots/keywords.jpg" width="320"> | <img src="screenshots/sources.jpg" width="320"> |
+
+> *참고: 실제 실행 화면 이미지를 `screenshots/` 폴더에 추가한 후 확인하실 수 있습니다.*
 
 ---
 
 ## ✨ 주요 기능 (Key Features)
 
-- 📰 **실시간 뉴스 통합 수집**: Android, Medium, Kotlin Blog 등 주요 기술 소스의 RSS 통합 피드 제공.
-- 🌐 **온디바이스 AI 번역**: Google ML Kit을 사용하여 영어 제목을 한국어로 즉시 번역.
-- 🔔 **관심 키워드 알림**: 등록된 키워드 매칭 시 백그라운드 푸시 알림 발송 및 기사 즉시 이동.
+- 📰 **실시간 뉴스 통합 수집**: Android, Medium, Kotlin Blog, Toss Tech 등 주요 기술 소스의 RSS 통합 피드 제공.
+- 🌐 **온디바이스 AI 번역**: Google ML Kit을 사용하여 영어 제목을 한국어로 즉시 번역 (오프라인/무료).
+- 🔔 **관심 키워드 알림**: 등록된 키워드 매칭 시 백그라운드 푸시 알림 발송 및 기사 즉시 이동(Deep Link).
 - ⚙️ **동적 콘텐츠 관리**: 사용자가 직접 RSS 소스 및 알림 키워드를 추가/삭제할 수 있는 커스텀 기능.
-- ⏱️ **읽기 편의성 제공**: 단어 수 기반 예상 읽기 소요 시간 표시 및 Chrome Custom Tabs 브라우징.
+- ⏱️ **읽기 소요 시간 제공**: 단어 수 기반 예상 읽기 소요 시간 표시 및 Chrome Custom Tabs 브라우징.
+- 🎨 **프리미엄 UI/UX**: Material 3 기반의 모던한 디자인, 이미지 썸네일 지원 및 쉬머(Shimmer) 애니메이션 적용.
 
 ---
 
@@ -45,3 +60,7 @@ DevPulse/
 1. 이 저장소를 클론(Clone)합니다.
 2. 안드로이드 스튜디오 최신 버전에서 프로젝트를 엽니다.
 3. **Gradle Sync**를 완료한 후 앱을 실행합니다.
+
+---
+**Author**: [Your GitHub ID]  
+**Version**: 1.0.0 (MVP 완성)

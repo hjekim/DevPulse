@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     NewsListScreen(
-                        title = if (selectedTab == 0) "DevPulse" else "Saved Stories",
+                        title = if (selectedTab == 0) "DevPulse" else "BookMark",
                         newsItems = if (selectedTab == 0) newsItems else bookmarks,
                         translatedTitles = translatedTitles,
                         translatingUrls = translatingUrls,
@@ -256,11 +256,6 @@ fun PremiumHeader(title: String, showActions: Boolean, isNotificationEnabled: Bo
                     }
                 }
             }
-            Text(
-                text = "기술 트렌드를 한눈에 확인하세요", 
-                style = MaterialTheme.typography.bodyMedium, 
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-            )
         }
     }
 }
