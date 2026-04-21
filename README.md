@@ -14,8 +14,6 @@ DevPulse는 전 세계 주요 기술 블로그와 RSS 피드를 실시간으로 
 | **알림 키워드 설정** | **RSS 소스 관리** |
 | <img src="screenshots/keywords.jpg" width="320"> | <img src="screenshots/sources.jpg" width="320"> |
 
-> *참고: 실제 실행 화면 이미지를 `screenshots/` 폴더에 추가한 후 확인하실 수 있습니다.*
-
 ---
 
 ## ✨ 주요 기능 (Key Features)
