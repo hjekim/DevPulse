@@ -59,5 +59,3 @@ DevPulse/
 3. **Gradle Sync**를 완료한 후 앱을 실행합니다.
 
 ---
-**Author**: [Your GitHub ID]  
-**Version**: 1.0.0 (MVP 완성)
