@@ -16,7 +16,7 @@ DevPulse는 전 세계 주요 기술 블로그와 RSS 피드를 실시간으로 
 
 ---
 
-## ✨ 주요 기능 (Key Features)
+## ✨ 주요 기능
 
 - 📰 **실시간 뉴스 통합 수집**: Android, Medium, Kotlin Blog 등 주요 기술 소스의 RSS 통합 피드 제공.
 - 🌐 **온디바이스 AI 번역**: Google ML Kit을 사용하여 영어 제목을 한국어로 즉시 번역.
@@ -33,7 +33,7 @@ DevPulse는 전 세계 주요 기술 블로그와 RSS 피드를 실시간으로 
 - **Dependency Injection**: Dagger Hilt
 - **Architecture**: Clean Architecture (Multi-module: app, core, model)
 - **Networking**: Retrofit 2, OkHttp
-- **Database**: Room DB (v5)
+- **Database**: Room DB
 - **Background Task**: WorkManager
 - **ML Service**: Google ML Kit (Translate)
 - **Image Loading**: Coil
